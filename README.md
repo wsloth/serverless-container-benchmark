@@ -1,8 +1,14 @@
 # Serverless Container Benchmark
 
-This Serverless Container Benchmark is inspired by the [CloudRepublic Serverless Function Benchmark](https://github.com/CloudRepublic/CloudRepublic.BenchMark).
+This Serverless Container Benchmark is inspired by the [CloudRepublic Serverless Function Benchmark](https://serverlessbenchmark.cloudrepublic.nl/).
 
 It measures the cold start performance of serverless containers running on [Azure Container Apps](https://azure.microsoft.com/en-us/products/container-apps) in multiple regions.
+
+## Why?
+
+Cold start performance is a critical aspect of serverless architectures, as it directly impacts the user experience. By benchmarking the cold start times of serverless containers across different regions, we can identify what workloads are acceptable to run serverless and which ones should have minimum resource guarantees.
+
+This benchmark is not a critique on the Azure Container Apps platform, but rather an exploration of the trade-offs involved in serverless computing.
 
 ## Architecture
 
