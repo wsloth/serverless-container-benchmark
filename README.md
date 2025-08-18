@@ -61,3 +61,20 @@ Suggested result schema (Table Storage):
 - LatencyMs: end-to-end latency in milliseconds
 - ColdStart: boolean flag (heuristic or server-reported)
 
+
+## Run locally with .NET Aspire
+
+This repo includes an Aspire AppHost (`src/AppHost`) that orchestrates the Minimal API and the Benchmark Runner and launches the Aspire Dashboard.
+
+Prereqs:
+- .NET 8 SDK installed (recommended). A `global.json` is provided to prefer .NET 8.
+- Aspire CLI installed as a .NET global tool: `dotnet tool install -g aspire`
+
+Run:
+- From the repo root, run: `aspire run --project src/AppHost/AppHost.csproj`
+- The dashboard will open automatically. The API is exposed on http://localhost:8080.
+
+Notes:
+- The AppHost config enables `DOTNET_ASPIRE_ALLOW_UNSECURED_TRANSPORT=true` for local development so you don't need HTTPS dev certs.
+- If you have only .NET 10 preview SDK installed, you may be prompted to install the `aspire` workload. Prefer using .NET 8 to avoid that on local machines.
+
