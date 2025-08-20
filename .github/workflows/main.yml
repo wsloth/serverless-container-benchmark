@@ -1,7 +1,7 @@
 ---
 name: Main Branch CI/CD
 
-on:
+'on':
   push:
     branches: [main]
     paths-ignore:
@@ -10,8 +10,13 @@ on:
 
 env:
   DOTNET_VERSION: '9.0.x'
-  # Set this to your Azure Container Registry name (e.g., 'myregistry.azurecr.io')
+  # Set this to your Azure Container Registry name
+  # (e.g., 'myregistry.azurecr.io')
   REGISTRY_NAME: ''
+  # Set this to your Azure resource group containing the ACR
+  AZURE_RESOURCE_GROUP: ''
+  # Set this to your Azure subscription ID
+  AZURE_SUBSCRIPTION_ID: ''
 
 jobs:
   build-and-test:
@@ -34,9 +39,9 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests
-        run: >
-          dotnet test --configuration Release --no-build 
-          --verbosity normal --collect:"XPlat Code Coverage"
+        run: |
+          dotnet test --configuration Release --no-build \
+            --verbosity normal --collect:"XPlat Code Coverage"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -52,19 +57,29 @@ jobs:
     needs: build-and-test
     if: env.REGISTRY_NAME != ''
 
+    # Grant GITHUB_TOKEN the permissions required to authenticate
+    # with Azure via federated identity
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Azure Container Registry
-        uses: azure/docker-login@v1
-        with:
-          login-server: ${{ env.REGISTRY_NAME }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          az acr login --name $(echo ${{ env.REGISTRY_NAME }} | cut -d'.' -f1)
 
       - name: Extract metadata for MinimalApi
         id: meta-api
@@ -146,7 +161,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Registry Configuration Notice
-        run: >
-          echo "::notice title=Registry Configuration::To enable container 
-          registry push, set the REGISTRY_NAME environment variable and 
-          configure ACR_USERNAME and ACR_PASSWORD secrets"
+        run: |
+          echo "::notice title=Registry Configuration::To enable container \
+          registry push, configure the following: 1) Set REGISTRY_NAME, \
+          AZURE_RESOURCE_GROUP, and AZURE_SUBSCRIPTION_ID environment \
+          variables, 2) Set up Azure federated identity with AZURE_CLIENT_ID \
+          and AZURE_TENANT_ID secrets, 3) Grant the service principal \
+          AcrPush role on your container registry"
