@@ -78,3 +78,38 @@ Notes:
 - The AppHost config enables `DOTNET_ASPIRE_ALLOW_UNSECURED_TRANSPORT=true` for local development so you don't need HTTPS dev certs.
 - If you have only .NET 10 preview SDK installed, you may be prompted to install the `aspire` workload. Prefer using .NET 8 to avoid that on local machines.
 
+## CI/CD Pipeline
+
+This repository includes a complete CI/CD pipeline implemented with GitHub Actions that supports:
+
+### Pull Request Workflow
+- **Trigger**: Pull requests to `main` branch
+- **Actions**: 
+  - Build solution with .NET 9.0
+  - Run all unit tests
+  - Validate Docker builds (without pushing)
+  - Upload test results as artifacts
+
+### Main Branch Workflow  
+- **Trigger**: Pushes to `main` branch
+- **Actions**:
+  - Build solution with .NET 9.0
+  - Run all unit tests
+  - Build Docker containers for both components
+  - Push to Azure Container Registry (if configured)
+
+### Container Images
+Two Docker images are built:
+- **serverless-benchmark-api**: MinimalApi web service
+- **serverless-benchmark-runner**: BenchmarkRunner console application
+
+### Azure Container Registry Setup
+To enable automatic container pushes to Azure Container Registry:
+
+1. Set the `REGISTRY_NAME` environment variable in `.github/workflows/main.yml` to your ACR URL (e.g., `myregistry.azurecr.io`)
+2. Configure the following repository secrets:
+   - `ACR_USERNAME`: Azure Container Registry username
+   - `ACR_PASSWORD`: Azure Container Registry password
+
+If `REGISTRY_NAME` is not configured, the workflow will build containers but skip the push step, displaying a notice with setup instructions.
+
