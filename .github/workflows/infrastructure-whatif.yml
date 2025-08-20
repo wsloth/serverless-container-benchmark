@@ -1,0 +1,97 @@
+name: Infrastructure What-If
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - '.github/workflows/infrastructure-*.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  bicep-whatif:
+    name: Bicep What-If
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, prod]
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Azure CLI
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Install Bicep CLI
+      run: az bicep install
+
+    - name: Bicep Build
+      run: |
+        cd deploy
+        az bicep build --file bicep/main.bicep
+
+    - name: Azure What-If
+      id: whatif
+      run: |
+        cd deploy
+        echo "## Infrastructure What-If - ${{ matrix.environment }}" >> whatif-output.md
+        echo "" >> whatif-output.md
+        echo '```' >> whatif-output.md
+        az deployment sub what-if \
+          --location westus2 \
+          --template-file bicep/main.bicep \
+          --parameters parameters/${{ matrix.environment }}.bicepparam \
+          --only-show-errors >> whatif-output.md || true
+        echo '```' >> whatif-output.md
+        echo "" >> whatif-output.md
+
+    - name: Comment PR with What-If Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = './deploy/whatif-output.md';
+          
+          if (fs.existsSync(path)) {
+            const whatifOutput = fs.readFileSync(path, 'utf8');
+            
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              comment.body.includes('Infrastructure What-If - ${{ matrix.environment }}')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: whatifOutput
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: whatifOutput
+              });
+            }
+          }
