@@ -22,8 +22,8 @@ The infrastructure is designed with the following principles:
 - **Container Registry**: Region-local registry for fast image pulls during cold starts
 - **Log Analytics Workspace**: Monitoring and diagnostics
 - **Container App Environment**: Serverless container hosting platform
-- **Container App (MinimalApi)**: The API being benchmarked, configured for serverless scaling (0-10 replicas)
-- **Container App Job (BenchmarkRunner)**: Manual job that performs the benchmarking
+- **Container App (MinimalApi)**: The API being benchmarked, configured for serverless scaling (0-1 replicas)
+- **Container App Job (BenchmarkRunner)**: Scheduled job (hourly) that performs the benchmarking
 
 ## File Structure
 
@@ -36,7 +36,6 @@ deploy/
 │       └── region.bicep           # Regional infrastructure module
 └── parameters/
     ├── dev.bicepparam            # Development environment (2 regions)
-    ├── test.bicepparam           # Test environment (4 regions)
     └── prod.bicepparam           # Production environment (30+ regions)
 ```
 

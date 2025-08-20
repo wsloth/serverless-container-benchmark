@@ -43,12 +43,3 @@ param regions = [
 // Container images - these should be set via CI/CD pipeline in production
 param minimalApiImage = '#{MinimalApiImage}#'
 param benchmarkRunnerImage = '#{BenchmarkRunnerImage}#'
-
-// Production tags
-param tags = {
-  Environment: 'Production'
-  Project: 'ServerlessContainerBenchmark'
-  Owner: 'Platform'
-  CostCenter: 'Research'
-  Criticality: 'Low'
-}

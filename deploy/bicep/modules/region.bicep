@@ -10,9 +10,6 @@ param environment string
 @description('The region to deploy to')
 param region string
 
-@description('Tags to apply to all resources')
-param tags object = {}
-
 @description('Name of the shared storage account')
 param storageAccountName string
 
@@ -29,7 +26,6 @@ var resourceNamePrefix = '${projectName}-${environment}-${region}'
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: replace('${resourceNamePrefix}cr', '-', '')
   location: region
-  tags: tags
   sku: {
     name: 'Basic'
   }
@@ -47,7 +43,6 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${resourceNamePrefix}-law'
   location: region
-  tags: tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -60,7 +55,6 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${resourceNamePrefix}-cae'
   location: region
-  tags: tags
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
@@ -76,7 +70,6 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' 
 resource minimalApiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${resourceNamePrefix}-api'
   location: region
-  tags: tags
   identity: {
     type: 'SystemAssigned'
   }
@@ -117,8 +110,10 @@ resource minimalApiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
                 port: 8080
                 scheme: 'HTTP'
               }
-              initialDelaySeconds: 5
-              periodSeconds: 10
+              initialDelaySeconds: 1
+              periodSeconds: 5
+              timeoutSeconds: 3
+              failureThreshold: 2
             }
             {
               type: 'Liveness'
@@ -127,15 +122,17 @@ resource minimalApiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
                 port: 8080
                 scheme: 'HTTP'
               }
-              initialDelaySeconds: 15
-              periodSeconds: 30
+              initialDelaySeconds: 10
+              periodSeconds: 60
+              timeoutSeconds: 5
+              failureThreshold: 3
             }
           ]
         }
       ]
       scale: {
         minReplicas: 0
-        maxReplicas: 10
+        maxReplicas: 1
         rules: [
           {
             name: 'http-rule'
@@ -155,14 +152,18 @@ resource minimalApiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
 resource benchmarkRunnerJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${resourceNamePrefix}-benchmark'
   location: region
-  tags: tags
   identity: {
     type: 'SystemAssigned'
   }
   properties: {
     environmentId: containerAppEnvironment.id
     configuration: {
-      triggerType: 'Manual'
+      triggerType: 'Schedule'
+      scheduleTriggerConfig: {
+        cronExpression: '0 * * * *' // Every hour at minute 0
+        parallelism: 1
+        replicaCompletionCount: 1
+      }
       replicaTimeout: 1800 // 30 minutes
       replicaRetryLimit: 3
     }

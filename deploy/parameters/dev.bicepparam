@@ -14,11 +14,3 @@ param regions = [
 // Container images - these would typically be set via CI/CD pipeline
 param minimalApiImage = 'mcr.microsoft.com/dotnet/samples:aspnetapp-8.0'
 param benchmarkRunnerImage = 'mcr.microsoft.com/dotnet/runtime:8.0'
-
-// Common tags
-param tags = {
-  Environment: 'Development'
-  Project: 'ServerlessContainerBenchmark'
-  Owner: 'DevTeam'
-  CostCenter: 'Engineering'
-}

@@ -27,7 +27,7 @@ echo "✓ region.bicep is valid"
 # Check parameter files exist
 echo ""
 echo "Checking parameter files..."
-for env in dev test prod; do
+for env in dev prod; do
     if [ -f "$SCRIPT_DIR/parameters/${env}.bicepparam" ]; then
         echo "✓ ${env}.bicepparam exists"
     else
@@ -43,5 +43,4 @@ echo "=============================================="
 echo ""
 echo "To deploy:"
 echo "  ./deploy.sh dev    # Development environment"
-echo "  ./deploy.sh test   # Test environment"
 echo "  ./deploy.sh prod   # Production environment"

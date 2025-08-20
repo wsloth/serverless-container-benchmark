@@ -10,11 +10,8 @@ param sharedLocation string = 'westus2'
 @description('List of regions where to deploy the container app environments')
 param regions array
 
-@description('Environment name (dev, test, prod)')
+@description('Environment name (dev, prod)')
 param environment string = 'dev'
-
-@description('Tags to apply to all resources')
-param tags object = {}
 
 @description('The container image for the MinimalApi')
 param minimalApiImage string
@@ -30,7 +27,6 @@ var sharedResourceGroupName = '${resourceNamePrefix}-shared-rg'
 resource sharedResourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: sharedResourceGroupName
   location: sharedLocation
-  tags: tags
 }
 
 // Deploy shared storage account
@@ -40,7 +36,6 @@ module storageAccount 'modules/storage.bicep' = {
   params: {
     storageAccountName: replace('${resourceNamePrefix}st', '-', '')
     location: sharedLocation
-    tags: tags
   }
 }
 
@@ -48,7 +43,6 @@ module storageAccount 'modules/storage.bicep' = {
 resource regionalResourceGroups 'Microsoft.Resources/resourceGroups@2024-03-01' = [for region in regions: {
   name: '${resourceNamePrefix}-${region}-rg'
   location: region
-  tags: tags
 }]
 
 module regionalInfrastructure 'modules/region.bicep' = [for (region, i) in regions: {
@@ -58,7 +52,6 @@ module regionalInfrastructure 'modules/region.bicep' = [for (region, i) in regio
     projectName: projectName
     environment: environment
     region: region
-    tags: tags
     storageAccountName: storageAccount.outputs.storageAccountName
     minimalApiImage: minimalApiImage
     benchmarkRunnerImage: benchmarkRunnerImage

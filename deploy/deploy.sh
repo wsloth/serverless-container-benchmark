@@ -16,7 +16,6 @@ usage() {
     echo ""
     echo "Environments:"
     echo "  dev   - Development environment (2 regions)"
-    echo "  test  - Test environment (4 regions)"
     echo "  prod  - Production environment (30+ regions)"
     echo ""
     echo "Examples:"
@@ -34,7 +33,7 @@ ENVIRONMENT=$1
 SUBSCRIPTION_ID=$2
 
 # Validate environment
-if [[ ! "$ENVIRONMENT" =~ ^(dev|test|prod)$ ]]; then
+if [[ ! "$ENVIRONMENT" =~ ^(dev|prod)$ ]]; then
     echo "Error: Invalid environment '$ENVIRONMENT'"
     usage
 fi
