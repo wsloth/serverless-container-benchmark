@@ -62,45 +62,7 @@ The Serverless Container Benchmark is a distributed system designed to measure c
 - Adds resilience patterns (retries, circuit breakers)
 - Shared across all components for consistent behavior
 
-## Deployment Architecture
 
-```mermaid
-flowchart TB
-    subgraph Region1[Region: West US]
-        Job1[Container App Job<br/>BenchmarkRunner]
-        API1[Container App<br/>MinimalApi /ping]
-        ACR1[(Container Registry)]
-        
-        ACR1 -->|Pull image| API1
-        ACR1 -->|Pull image| Job1
-        Job1 -->|HTTP GET /ping| API1
-    end
-    
-    subgraph Region2[Region: East US]
-        Job2[Container App Job<br/>BenchmarkRunner]
-        API2[Container App<br/>MinimalApi /ping]
-        ACR2[(Container Registry)]
-        
-        ACR2 -->|Pull image| API2
-        ACR2 -->|Pull image| Job2
-        Job2 -->|HTTP GET /ping| API2
-    end
-    
-    subgraph Region3[Region: West Europe]
-        Job3[Container App Job<br/>BenchmarkRunner]
-        API3[Container App<br/>MinimalApi /ping]
-        ACR3[(Container Registry)]
-        
-        ACR3 -->|Pull image| API3
-        ACR3 -->|Pull image| Job3
-        Job3 -->|HTTP GET /ping| API3
-    end
-    
-    Central[(Central Azure Table Storage)]
-    Job1 -->|Store results| Central
-    Job2 -->|Store results| Central
-    Job3 -->|Store results| Central
-```
 
 ## Execution Flow
 
@@ -214,26 +176,6 @@ The solution includes full local development support via .NET Aspire:
 2. **Run Command**: `aspire run --project src/AppHost/AppHost.csproj`
 3. **Access**: API available at http://localhost:8080, Aspire Dashboard auto-opens
 4. **Storage**: Uses Azure Storage Emulator for local development
-
-## Extensibility
-
-The architecture supports several extension points:
-
-### Custom Endpoints
-- Add new API paths via `API_PATHS` configuration
-- Implement custom endpoint logic in MinimalApi
-
-### Additional Metrics
-- Extend BenchmarkResult model for new measurements
-- Modify BenchmarkRunner to collect additional data points
-
-### Alternative Storage
-- Implement custom `ITableStorageService` for different storage backends
-- Add support for metrics databases or time-series stores
-
-### Multi-Cloud Support
-- Adapt Container App Jobs to other serverless platforms
-- Implement platform-specific service discovery and configuration
 
 ## Best Practices
 
