@@ -41,14 +41,18 @@ jobs:
       - name: Run tests
         run: |
           dotnet test --configuration Release --no-build \
-            --verbosity normal --collect:"XPlat Code Coverage"
+            --verbosity normal --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger "trx;LogFileName=TestResults.trx"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
-          path: '**/TestResults/**/*'
+          path: |
+            TestResults/
+            **/TestResults/
           retention-days: 30
 
   build-and-push-containers:
