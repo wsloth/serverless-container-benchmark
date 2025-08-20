@@ -1,0 +1,9 @@
+# Generated ARM templates
+*.json
+
+# Azure CLI output
+*.log
+
+# Temporary files
+*.tmp
+*~
