@@ -101,7 +101,8 @@ public sealed class AzureTableStorageService : ITableStorageService
             { nameof(BenchmarkResult.BaseUri), r.BaseUri },
             { nameof(BenchmarkResult.Concurrency), r.Concurrency },
             { nameof(BenchmarkResult.ColdCalls), r.ColdCalls },
-            { nameof(BenchmarkResult.WarmCalls), r.WarmCalls }
+            { nameof(BenchmarkResult.WarmCalls), r.WarmCalls },
+            { nameof(BenchmarkResult.Region), r.Region }
         };
         return entity;
     }

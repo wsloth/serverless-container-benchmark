@@ -29,6 +29,7 @@ public class BenchmarkRunner : IBenchmarkRunner
         var warmCalls = int.TryParse(Environment.GetEnvironmentVariable("WARM_CALLS"), out var wc) ? wc : 10;
         var delayBetweenCallsSec = int.TryParse(Environment.GetEnvironmentVariable("DELAY_BETWEEN_CALLS_SEC"), out var db) ? db : 30;
         var concurrency = int.TryParse(Environment.GetEnvironmentVariable("CONCURRENCY"), out var c) ? c : 10;
+        var region = Environment.GetEnvironmentVariable("REGION") ?? "unknown";
 
         var httpClient = _httpClientFactory.CreateClient("default");
         httpClient.BaseAddress = ResolveBaseUri(baseUrl);
@@ -38,8 +39,8 @@ public class BenchmarkRunner : IBenchmarkRunner
             .DefaultIfEmpty(singlePath)
             .ToArray();
 
-        _logger.LogInformation("Base: {Base}, Types: {Types}, Cold={Cold}, Warm={Warm}, Delay={Delay}s, Concurrency={Concurrency}",
-            httpClient.BaseAddress, string.Join(", ", paths), coldCalls, warmCalls, delayBetweenCallsSec, concurrency);
+        _logger.LogInformation("Base: {Base}, Types: {Types}, Cold={Cold}, Warm={Warm}, Delay={Delay}s, Concurrency={Concurrency}, Region={Region}",
+            httpClient.BaseAddress, string.Join(", ", paths), coldCalls, warmCalls, delayBetweenCallsSec, concurrency, region);
 
         var results = new List<BenchmarkResult>();
         var ts = DateTimeOffset.UtcNow;
@@ -52,7 +53,7 @@ public class BenchmarkRunner : IBenchmarkRunner
 
             // Cold phase
             var (latCold, errsCold, elapsedCold) = await RunPhaseAsync(httpClient, path, coldCalls, concurrency, cancellationToken);
-            results.Add(BuildResult(runId, ts, httpClient.BaseAddress!, path, "Cold", coldCalls, latCold, errsCold, elapsedCold, concurrency, coldCalls, warmCalls));
+            results.Add(BuildResult(runId, ts, httpClient.BaseAddress!, path, "Cold", coldCalls, latCold, errsCold, elapsedCold, concurrency, coldCalls, warmCalls, region));
 
             // Delay between phases
             if (delayBetweenCallsSec > 0)
@@ -62,14 +63,14 @@ public class BenchmarkRunner : IBenchmarkRunner
 
             // Warm phase
             var (latWarm, errsWarm, elapsedWarm) = await RunPhaseAsync(httpClient, path, warmCalls, concurrency, cancellationToken);
-            results.Add(BuildResult(runId, ts, httpClient.BaseAddress!, path, "Warm", warmCalls, latWarm, errsWarm, elapsedWarm, concurrency, coldCalls, warmCalls));
+            results.Add(BuildResult(runId, ts, httpClient.BaseAddress!, path, "Warm", warmCalls, latWarm, errsWarm, elapsedWarm, concurrency, coldCalls, warmCalls, region));
 
             swAll.Stop();
 
             // Totals
             var allLat = latCold.Concat(latWarm).ToList();
             var totalErrors = errsCold + errsWarm;
-            results.Add(BuildResult(runId, ts, httpClient.BaseAddress!, path, "Total", coldCalls + warmCalls, allLat, totalErrors, swAll.Elapsed, concurrency, coldCalls, warmCalls));
+            results.Add(BuildResult(runId, ts, httpClient.BaseAddress!, path, "Total", coldCalls + warmCalls, allLat, totalErrors, swAll.Elapsed, concurrency, coldCalls, warmCalls, region));
         }
 
         return results;
@@ -128,7 +129,8 @@ public class BenchmarkRunner : IBenchmarkRunner
         TimeSpan elapsed,
         int concurrency,
         int coldCalls,
-        int warmCalls)
+        int warmCalls,
+        string region)
     {
         double min = 0, p50 = 0, avg = 0, p90 = 0, p99 = 0, max = 0;
         var ok = latencies.Count;
@@ -164,7 +166,8 @@ public class BenchmarkRunner : IBenchmarkRunner
             BaseUri = baseUri.ToString(),
             Concurrency = concurrency,
             ColdCalls = coldCalls,
-            WarmCalls = warmCalls
+            WarmCalls = warmCalls,
+            Region = region
         };
     }
 

@@ -29,7 +29,7 @@ public class BenchmarkRunnerTests
         });
 
         var handler = new SequenceHandler(
-            Enumerable.Repeat(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("ok") }, 5)
+            Enumerable.Range(0, 5).Select(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("ok") })
         );
         var client = new HttpClient(handler);
 
@@ -191,6 +191,7 @@ public class BenchmarkRunnerTests
     private sealed class SequenceHandler : HttpMessageHandler
     {
         private readonly Queue<Func<HttpRequestMessage, HttpResponseMessage>> _queue = new();
+        private readonly object _gate = new();
 
         public SequenceHandler(IEnumerable<HttpResponseMessage> responses)
         {
@@ -219,11 +220,15 @@ public class BenchmarkRunnerTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (_queue.Count == 0)
+            Func<HttpRequestMessage, HttpResponseMessage>? fn;
+            lock (_gate)
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                if (_queue.Count == 0)
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                }
+                fn = _queue.Dequeue();
             }
-            var fn = _queue.Dequeue();
             var result = fn(request);
             return Task.FromResult(result);
         }

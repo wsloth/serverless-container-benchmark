@@ -26,4 +26,5 @@ public record BenchmarkResult
     public required int Concurrency { get; init; }
     public required int ColdCalls { get; init; }
     public required int WarmCalls { get; init; }
+    public required string Region { get; init; } // Runner region (e.g., westeurope). Used for central aggregation.
 }

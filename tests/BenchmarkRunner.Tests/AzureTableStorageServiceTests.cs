@@ -122,10 +122,10 @@ public class AzureTableStorageServiceTests
                 BaseUri = "http://localhost",
                 Concurrency = 1,
                 ColdCalls = 1,
-                WarmCalls = 0
+                WarmCalls = 0,
+                Region = "test-region"
             });
         }
         return list;
     }
 }
-
