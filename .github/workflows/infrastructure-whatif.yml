@@ -16,9 +16,6 @@ jobs:
   bicep-whatif:
     name: Bicep What-If
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        environment: [dev, prod]
     
     steps:
     - name: Checkout
@@ -43,13 +40,13 @@ jobs:
       id: whatif
       run: |
         cd deploy
-        echo "## Infrastructure What-If - ${{ matrix.environment }}" >> whatif-output.md
+        echo "## Infrastructure What-If - Production" >> whatif-output.md
         echo "" >> whatif-output.md
         echo '```' >> whatif-output.md
         az deployment sub what-if \
           --location westus2 \
           --template-file bicep/main.bicep \
-          --parameters parameters/${{ matrix.environment }}.bicepparam \
+          --parameters parameters/prod.bicepparam \
           --only-show-errors >> whatif-output.md || true
         echo '```' >> whatif-output.md
         echo "" >> whatif-output.md
@@ -74,7 +71,7 @@ jobs:
             
             const botComment = comments.data.find(comment => 
               comment.user.login === 'github-actions[bot]' && 
-              comment.body.includes('Infrastructure What-If - ${{ matrix.environment }}')
+              comment.body.includes('Infrastructure What-If - Production')
             );
             
             if (botComment) {

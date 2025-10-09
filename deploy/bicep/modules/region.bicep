@@ -1,12 +1,6 @@
 // Regional infrastructure module
 targetScope = 'resourceGroup'
 
-@description('The name of the project')
-param projectName string
-
-@description('Environment name (dev, test, prod)')
-param environment string
-
 @description('The region to deploy to')
 param region string
 
@@ -20,7 +14,7 @@ param minimalApiImage string
 param benchmarkRunnerImage string
 
 // Variables
-var resourceNamePrefix = '${projectName}-${environment}-${region}'
+var resourceNamePrefix = 'scb-${region}'
 
 // Deploy Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
@@ -95,7 +89,7 @@ resource minimalApiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             {
               name: 'ASPNETCORE_ENVIRONMENT'
-              value: environment
+              value: 'Production'
             }
             {
               name: 'ASPNETCORE_URLS'

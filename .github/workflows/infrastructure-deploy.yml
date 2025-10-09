@@ -8,15 +8,6 @@ on:
       - 'deploy/**'
       - '.github/workflows/infrastructure-deploy.yml'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
 
 permissions:
   id-token: write
@@ -26,7 +17,6 @@ jobs:
   deploy:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
     - name: Checkout
@@ -50,37 +40,35 @@ jobs:
     - name: Deploy Infrastructure
       run: |
         cd deploy
-        environment="${{ github.event.inputs.environment || 'dev' }}"
-        echo "Deploying to environment: $environment"
+        echo "Deploying to production environment"
         
         # Update container image parameters if available
         if [[ -n "${{ vars.MINIMAL_API_IMAGE }}" ]]; then
-          sed -i "s|#{MinimalApiImage}#|${{ vars.MINIMAL_API_IMAGE }}|g" parameters/${environment}.bicepparam
+          sed -i "s|#{MinimalApiImage}#|${{ vars.MINIMAL_API_IMAGE }}|g" parameters/prod.bicepparam
         fi
         
         if [[ -n "${{ vars.BENCHMARK_RUNNER_IMAGE }}" ]]; then
-          sed -i "s|#{BenchmarkRunnerImage}#|${{ vars.BENCHMARK_RUNNER_IMAGE }}|g" parameters/${environment}.bicepparam
+          sed -i "s|#{BenchmarkRunnerImage}#|${{ vars.BENCHMARK_RUNNER_IMAGE }}|g" parameters/prod.bicepparam
         fi
         
         # Deploy the infrastructure
-        deployment_name="scb-${environment}-$(date +%Y%m%d-%H%M%S)"
+        deployment_name="scb-prod-$(date +%Y%m%d-%H%M%S)"
         
         az deployment sub create \
           --name $deployment_name \
           --location westus2 \
           --template-file bicep/main.bicep \
-          --parameters parameters/${environment}.bicepparam \
+          --parameters parameters/prod.bicepparam \
           --verbose
 
     - name: Output Deployment Results
       run: |
         cd deploy
-        environment="${{ github.event.inputs.environment || 'dev' }}"
-        deployment_name="scb-${environment}-$(date +%Y%m%d-%H%M%S)"
+        deployment_name="scb-prod-$(date +%Y%m%d-%H%M%S)"
         
         echo "## Deployment Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** $environment" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
         echo "**Deployment Name:** $deployment_name" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         

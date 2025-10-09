@@ -1,44 +1,32 @@
 #!/bin/bash
 
 # Serverless Container Benchmark - Deployment Script
-# Usage: ./deploy.sh <environment> [subscription-id]
+# Usage: ./deploy.sh [subscription-id]
 
 set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BICEP_FILE="$SCRIPT_DIR/bicep/main.bicep"
+PARAMS_FILE="$SCRIPT_DIR/parameters/prod.bicepparam"
 DEPLOYMENT_LOCATION="westus2"
 
 # Function to display usage
 usage() {
-    echo "Usage: $0 <environment> [subscription-id]"
-    echo ""
-    echo "Environments:"
-    echo "  dev   - Development environment (2 regions)"
-    echo "  prod  - Production environment (30+ regions)"
+    echo "Usage: $0 [subscription-id]"
     echo ""
     echo "Examples:"
-    echo "  $0 dev"
-    echo "  $0 prod 12345678-1234-1234-1234-123456789012"
+    echo "  $0"
+    echo "  $0 12345678-1234-1234-1234-123456789012"
     exit 1
 }
 
 # Check parameters
-if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+if [ $# -gt 1 ]; then
     usage
 fi
 
-ENVIRONMENT=$1
-SUBSCRIPTION_ID=$2
-
-# Validate environment
-if [[ ! "$ENVIRONMENT" =~ ^(dev|prod)$ ]]; then
-    echo "Error: Invalid environment '$ENVIRONMENT'"
-    usage
-fi
-
-PARAMS_FILE="$SCRIPT_DIR/parameters/${ENVIRONMENT}.bicepparam"
+SUBSCRIPTION_ID=$1
 
 # Check if parameter file exists
 if [ ! -f "$PARAMS_FILE" ]; then
@@ -64,7 +52,7 @@ fi
 echo "=============================================="
 echo "Serverless Container Benchmark Deployment"
 echo "=============================================="
-echo "Environment: $ENVIRONMENT"
+echo "Environment: Production"
 echo "Subscription: $CURRENT_SUB_NAME ($CURRENT_SUB)"
 echo "Location: $DEPLOYMENT_LOCATION"
 echo "Parameters: $PARAMS_FILE"
@@ -93,7 +81,7 @@ fi
 echo "Template validation successful!"
 
 # Deploy infrastructure
-DEPLOYMENT_NAME="scb-${ENVIRONMENT}-$(date +%Y%m%d-%H%M%S)"
+DEPLOYMENT_NAME="scb-prod-$(date +%Y%m%d-%H%M%S)"
 echo "Starting deployment: $DEPLOYMENT_NAME"
 
 az deployment sub create \

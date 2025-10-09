@@ -24,17 +24,15 @@ echo "Validating region module..."
 az bicep build --file "$SCRIPT_DIR/bicep/modules/region.bicep"
 echo "✓ region.bicep is valid"
 
-# Check parameter files exist
+# Check parameter file exists
 echo ""
 echo "Checking parameter files..."
-for env in dev prod; do
-    if [ -f "$SCRIPT_DIR/parameters/${env}.bicepparam" ]; then
-        echo "✓ ${env}.bicepparam exists"
-    else
-        echo "✗ ${env}.bicepparam missing"
-        exit 1
-    fi
-done
+if [ -f "$SCRIPT_DIR/parameters/prod.bicepparam" ]; then
+    echo "✓ prod.bicepparam exists"
+else
+    echo "✗ prod.bicepparam missing"
+    exit 1
+fi
 
 echo ""
 echo "=============================================="
@@ -42,5 +40,4 @@ echo "All Bicep templates are valid!"
 echo "=============================================="
 echo ""
 echo "To deploy:"
-echo "  ./deploy.sh dev    # Development environment"
-echo "  ./deploy.sh prod   # Production environment"
+echo "  ./deploy.sh    # Production environment"

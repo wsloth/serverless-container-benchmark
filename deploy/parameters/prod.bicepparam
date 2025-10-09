@@ -1,9 +1,7 @@
 using '../bicep/main.bicep'
 
-// Production environment parameters with multiple regions for comprehensive testing
-param projectName = 'scb'
-param environment = 'prod'
-param sharedLocation = 'westus2'
+// Production environment with multiple regions for comprehensive benchmarking
+param primaryLocation = 'westus2'
 
 // Comprehensive list of regions for production benchmarking
 param regions = [
@@ -40,6 +38,6 @@ param regions = [
   'southindia'
 ]
 
-// Container images - these should be set via CI/CD pipeline in production
+// Container images - these should be set via CI/CD pipeline
 param minimalApiImage = '#{MinimalApiImage}#'
 param benchmarkRunnerImage = '#{BenchmarkRunnerImage}#'
