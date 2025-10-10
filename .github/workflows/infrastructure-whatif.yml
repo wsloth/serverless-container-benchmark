@@ -1,7 +1,9 @@
 name: Infrastructure What-If
 
+# Using pull_request_target instead of pull_request so that the OIDC token subject is the base branch ref (e.g. repo:wsloth/serverless-container-benchmark:ref:refs/heads/main)
 on:
-  pull_request:
+  pull_request_target:
+    branches: [ main ]
     paths:
       - 'deploy/**'
       - '.github/workflows/infrastructure-*.yml'
