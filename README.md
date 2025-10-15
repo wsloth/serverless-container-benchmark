@@ -80,36 +80,74 @@ Notes:
 
 ## CI/CD Pipeline
 
-This repository includes a complete CI/CD pipeline implemented with GitHub Actions that supports:
+This repository includes a comprehensive CI/CD pipeline with GitHub Actions for both application and infrastructure deployment:
 
-### Pull Request Workflow
-- **Trigger**: Pull requests to `main` branch
+### Application Workflows
+
+#### Pull Request Workflow (`.github/workflows/pr.yml`)
+- **Trigger**: Pull requests to `main` branch (application code changes)
 - **Actions**: 
   - Build solution with .NET 9.0
-  - Run all unit tests
+  - Run all unit tests with code coverage
   - Validate Docker builds (without pushing)
   - Upload test results as artifacts
 
-### Main Branch Workflow  
-- **Trigger**: Pushes to `main` branch
+#### Main Branch Workflow (`.github/workflows/main.yml`)
+- **Trigger**: Pushes to `main` branch (application code changes)
 - **Actions**:
   - Build solution with .NET 9.0
-  - Run all unit tests
+  - Run all unit tests with code coverage
   - Build Docker containers for both components
   - Push to Azure Container Registry (if configured)
+
+### Infrastructure Workflows
+
+#### Infrastructure What-If (`.github/workflows/infrastructure-whatif.yml`)
+- **Trigger**: Pull requests with changes to `deploy/**`
+- **Actions**:
+  - Validate Bicep templates
+  - Run Azure deployment what-if analysis
+  - Comment PR with infrastructure changes preview
+
+#### Infrastructure Deploy (`.github/workflows/infrastructure-deploy.yml`)
+- **Trigger**: Pushes to `main` branch with changes to `deploy/**`
+- **Actions**:
+  - Validate and deploy Bicep templates
+  - Deploy Azure infrastructure (Container Apps, ACRs, Storage, etc.)
+  - Output deployment results
 
 ### Container Images
 Two Docker images are built:
 - **serverless-benchmark-api**: MinimalApi web service
 - **serverless-benchmark-runner**: BenchmarkRunner console application
 
-### Azure Container Registry Setup
-To enable automatic container pushes to Azure Container Registry:
+### Azure Setup with OIDC Authentication
 
-1. Set the `REGISTRY_NAME` environment variable in `.github/workflows/main.yml` to your ACR URL (e.g., `myregistry.azurecr.io`)
-2. Configure the following repository secrets:
-   - `ACR_USERNAME`: Azure Container Registry username
-   - `ACR_PASSWORD`: Azure Container Registry password
+The pipeline uses OpenID Connect (OIDC) federated identity for secure, credential-less authentication with Azure.
 
-If `REGISTRY_NAME` is not configured, the workflow will build containers but skip the push step, displaying a notice with setup instructions.
+**Prerequisites:**
+1. Azure subscription with appropriate permissions
+2. Azure Container Registry (if you want to push container images)
+
+**Configuration:**
+
+For container image builds (optional):
+1. Set environment variables in `.github/workflows/main.yml`:
+   - `REGISTRY_NAME`: Your ACR URL (e.g., `myregistry.azurecr.io`)
+   - `AZURE_RESOURCE_GROUP`: Resource group containing the ACR
+   - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
+
+For infrastructure deployment:
+1. The infrastructure workflows automatically create regional ACRs as part of the Bicep deployment
+
+**Required Secrets:**
+- `AZURE_CLIENT_ID`: Azure AD application client ID
+- `AZURE_TENANT_ID`: Azure AD tenant ID
+
+**Setup Steps:**
+1. Create an Azure AD application and service principal
+2. Configure federated identity credentials for your GitHub repository
+3. Grant appropriate RBAC roles (AcrPush for container registry, Contributor for infrastructure deployment)
+
+For detailed setup instructions, see `docs/azure-oidc-setup.md`.
 

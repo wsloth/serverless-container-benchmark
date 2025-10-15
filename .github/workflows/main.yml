@@ -7,6 +7,8 @@ name: Main Branch CI/CD
     paths-ignore:
       - '**.md'
       - 'LICENSE'
+      - 'deploy/**'
+      - '.github/workflows/infrastructure-*.yml'
 
 env:
   DOTNET_VERSION: '9.0.x'
