@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 // Parameters
 @description('The location for the primary resources')
@@ -14,17 +14,10 @@ param minimalApiImage string
 param benchmarkRunnerImage string
 
 // Variables
-var resourceGroupName = 'serverless-container-benchmark'
-
-// Single Resource Group for all resources
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
-  name: resourceGroupName
-  location: primaryLocation
-}
+var resourceGroupName = resourceGroup().name
 
 // Deploy shared storage account
 module storageAccount 'modules/storage.bicep' = {
-  scope: resourceGroup
   name: 'storage-deployment'
   params: {
     storageAccountName: 'scbstprod'
@@ -34,7 +27,6 @@ module storageAccount 'modules/storage.bicep' = {
 
 // Deploy regional infrastructure for each region
 module regionalInfrastructure 'modules/region.bicep' = [for (region, i) in regions: {
-  scope: resourceGroup
   name: 'region-${region}'
   params: {
     region: region
@@ -70,7 +62,7 @@ resource storageRoleAssignmentsBenchmark 'Microsoft.Authorization/roleAssignment
 }]
 
 // Outputs
-output resourceGroupName string = resourceGroup.name
+output resourceGroupName string = resourceGroupName
 output storageAccountName string = storageAccount.outputs.storageAccountName
 output storageAccountResourceId string = storageAccount.outputs.storageAccountResourceId
 output regionalDeployments array = [for (region, i) in regions: {
