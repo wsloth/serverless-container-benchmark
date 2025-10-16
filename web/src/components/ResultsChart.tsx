@@ -35,21 +35,44 @@ const ResultsChart: React.FC<Props> = ({ results }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Performance Comparison</h3>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="region" />
-          <YAxis label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft' }} />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="Cold P50" fill="#ef4444" />
-          <Bar dataKey="Cold P90" fill="#dc2626" />
-          <Bar dataKey="Cold P99" fill="#b91c1c" />
-          <Bar dataKey="Warm P50" fill="#3b82f6" />
-          <Bar dataKey="Warm P90" fill="#2563eb" />
-          <Bar dataKey="Warm P99" fill="#1d4ed8" />
+    <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+      <div className="flex items-center gap-3 mb-6">
+        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <h3 className="text-xl font-bold text-gray-800">Performance Comparison by Region</h3>
+      </div>
+      <ResponsiveContainer width="100%" height={450}>
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis 
+            dataKey="region" 
+            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tickLine={{ stroke: '#d1d5db' }}
+          />
+          <YAxis 
+            label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
+            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tickLine={{ stroke: '#d1d5db' }}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: '#ffffff', 
+              border: '1px solid #e5e7eb', 
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+            }}
+          />
+          <Legend 
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="circle"
+          />
+          <Bar dataKey="Cold P50" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Cold P90" fill="#e11d48" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Cold P99" fill="#be123c" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Warm P50" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Warm P90" fill="#2563eb" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Warm P99" fill="#1d4ed8" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
