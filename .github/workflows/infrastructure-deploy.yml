@@ -37,25 +37,52 @@ jobs:
         cd deploy
         ./validate.sh
 
+    - name: Build Image URIs from Regional ACRs
+      id: build-image-uris
+      run: |
+        # Check if resource group exists and has ACRs
+        if ! az group exists --name serverless-container-benchmark; then
+          echo "::warning::Resource group 'serverless-container-benchmark' does not exist. Cannot determine image URIs."
+          exit 1
+        fi
+        
+        # Get the first regional ACR to construct image URIs
+        acr=$(az acr list --resource-group serverless-container-benchmark --query "[0]" -o json)
+        
+        if [ -z "$acr" ] || [ "$acr" == "null" ]; then
+          echo "::warning::No container registries found in resource group."
+          exit 1
+        fi
+        
+        login_server=$(echo "$acr" | jq -r '.loginServer')
+        echo "Found ACR login server: $login_server"
+        
+        # Build full image URIs with latest tag
+        minimal_api_image="${login_server}/serverless-benchmark-api:latest"
+        benchmark_runner_image="${login_server}/serverless-benchmark-runner:latest"
+        
+        echo "minimal_api_image=${minimal_api_image}" >> $GITHUB_OUTPUT
+        echo "benchmark_runner_image=${benchmark_runner_image}" >> $GITHUB_OUTPUT
+        
+        echo "Image URIs:"
+        echo "  MinimalApi: ${minimal_api_image}"
+        echo "  BenchmarkRunner: ${benchmark_runner_image}"
+
     - name: Deploy Infrastructure
       run: |
         cd deploy
         echo "Deploying to production environment"
         
-        # Update container image parameters if available
-        if [[ -n "${{ vars.MINIMAL_API_IMAGE }}" ]]; then
-          sed -i "s|#{MinimalApiImage}#|${{ vars.MINIMAL_API_IMAGE }}|g" parameters/prod.bicepparam
-        else
-          echo "::warning::MINIMAL_API_IMAGE variable not set, using 'latest' tag"
-          sed -i "s|#{MinimalApiImage}#|latest|g" parameters/prod.bicepparam
-        fi
+        # Update container image parameters with constructed URIs
+        minimal_api_image="${{ steps.build-image-uris.outputs.minimal_api_image }}"
+        benchmark_runner_image="${{ steps.build-image-uris.outputs.benchmark_runner_image }}"
         
-        if [[ -n "${{ vars.BENCHMARK_RUNNER_IMAGE }}" ]]; then
-          sed -i "s|#{BenchmarkRunnerImage}#|${{ vars.BENCHMARK_RUNNER_IMAGE }}|g" parameters/prod.bicepparam
-        else
-          echo "::warning::BENCHMARK_RUNNER_IMAGE variable not set, using 'latest' tag"
-          sed -i "s|#{BenchmarkRunnerImage}#|latest|g" parameters/prod.bicepparam
-        fi
+        sed -i "s|#{MinimalApiImage}#|${minimal_api_image}|g" parameters/prod.bicepparam
+        sed -i "s|#{BenchmarkRunnerImage}#|${benchmark_runner_image}|g" parameters/prod.bicepparam
+        
+        echo "Updated parameters/prod.bicepparam with:"
+        echo "  MinimalApiImage: ${minimal_api_image}"
+        echo "  BenchmarkRunnerImage: ${benchmark_runner_image}"
         
         # Deploy the infrastructure
         deployment_name="scb-prod-$(date +%Y%m%d-%H%M%S)"
