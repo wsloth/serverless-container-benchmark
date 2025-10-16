@@ -22,7 +22,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Azure CLI
+    - name: Azure CLI Login
       uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -54,9 +54,10 @@ jobs:
         # Deploy the infrastructure
         deployment_name="scb-prod-$(date +%Y%m%d-%H%M%S)"
         
-        az deployment sub create \
+        az deployment group create \
+          --name serverless-container-benchmark \
           --name $deployment_name \
-          --location westus2 \
+          --location westeurope \
           --template-file bicep/main.bicep \
           --parameters parameters/prod.bicepparam \
           --verbose

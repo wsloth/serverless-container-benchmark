@@ -43,8 +43,9 @@ jobs:
         echo "## Infrastructure What-If - Production" >> whatif-output.md
         echo "" >> whatif-output.md
         echo '```' >> whatif-output.md
-        az deployment sub what-if \
-          --location westus2 \
+        az deployment group what-if \
+          --name serverless-container-benchmark \
+          --location westeurope \
           --template-file bicep/main.bicep \
           --parameters parameters/prod.bicepparam \
           --only-show-errors >> whatif-output.md || true
