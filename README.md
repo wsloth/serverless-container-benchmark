@@ -78,3 +78,26 @@ Notes:
 - The AppHost config enables `DOTNET_ASPIRE_ALLOW_UNSECURED_TRANSPORT=true` for local development so you don't need HTTPS dev certs.
 - If you have only .NET 10 preview SDK installed, you may be prompted to install the `aspire` workload. Prefer using .NET 8 to avoid that on local machines.
 
+## Frontend
+
+The repository includes a React-based web frontend for visualizing benchmark results.
+
+### Features
+- 📊 Interactive charts for performance comparison
+- 📈 Detailed tables with cold and warm start metrics
+- 🎯 Overview statistics cards
+- 🎨 Modern UI built with Tailwind CSS
+- ⚡ Optimized for Azure Static Web Apps
+
+### Quick Start
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173/`
+
+For more details, see the [web/README.md](web/README.md).
+
