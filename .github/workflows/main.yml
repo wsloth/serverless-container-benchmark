@@ -140,6 +140,45 @@ jobs:
               .
           done
 
+      - name: Update Azure Container Apps with new image tags
+        if: steps.get-acrs.outputs.skip_push != 'true'
+        run: |
+          acrs='${{ steps.get-acrs.outputs.acrs }}'
+          image_tag="${GITHUB_SHA::7}"
+          
+          for row in $(echo "$acrs" | jq -r '.[] | @base64'); do
+            _jq() {
+              echo "${row}" | base64 --decode | jq -r "${1}"
+            }
+            
+            acr_name=$(_jq '.name')
+            acr_login_server=$(_jq '.loginServer')
+            
+            # Extract region from resource group or ACR name
+            # Assumes naming convention: acr{region} or similar
+            region=$(echo "$acr_name" | sed 's/acr//' | tr '[:upper:]' '[:lower:]')
+            
+            echo "Updating Container Apps in region: $region"
+            
+            # Update MinimalApi Container App
+            api_app_name="scb-${region}-api"
+            echo "Updating $api_app_name with new image tag: ${acr_login_server}/serverless-benchmark-api:${image_tag}"
+            az containerapp update \
+              --name "$api_app_name" \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image "${acr_login_server}/serverless-benchmark-api:${image_tag}" \
+              2>/dev/null || echo "Container App $api_app_name not found, skipping..."
+            
+            # Update BenchmarkRunner Container App Job
+            runner_job_name="scb-${region}-benchmark"
+            echo "Updating $runner_job_name with new image tag: ${acr_login_server}/serverless-benchmark-runner:${image_tag}"
+            az containerapp job update \
+              --name "$runner_job_name" \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image "${acr_login_server}/serverless-benchmark-runner:${image_tag}" \
+              2>/dev/null || echo "Container App Job $runner_job_name not found, skipping..."
+          done
+
   validate-docker-builds:
     runs-on: ubuntu-latest
     name: Validate Docker Builds

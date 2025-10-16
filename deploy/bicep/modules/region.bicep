@@ -194,6 +194,27 @@ resource benchmarkRunnerJob 'Microsoft.App/jobs@2024-03-01' = {
   }
 }
 
+// Role assignments for container registry pull access
+resource minimalApiAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(containerRegistry.id, minimalApiContainerApp.id, 'acrpull')
+  scope: containerRegistry
+  properties: {
+    roleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-338473ce6d2d'
+    principalId: minimalApiContainerApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource benchmarkRunnerAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(containerRegistry.id, benchmarkRunnerJob.id, 'acrpull')
+  scope: containerRegistry
+  properties: {
+    roleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-338473ce6d2d'
+    principalId: benchmarkRunnerJob.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Role assignments for storage access - these need to be at subscription level to assign to the storage account
 // These will be handled in the main template since the storage account is in a different resource group
 

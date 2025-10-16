@@ -36,11 +36,54 @@ jobs:
         cd deploy
         az bicep build --file bicep/main.bicep
 
+    - name: Build Image URIs from Regional ACRs
+      id: build-image-uris
+      continue-on-error: true
+      run: |
+        # Check if resource group exists and has ACRs
+        if ! az group exists --name serverless-container-benchmark; then
+          echo "::warning::Resource group 'serverless-container-benchmark' does not exist. Using placeholder values."
+          echo "minimal_api_image=#{MinimalApiImage}#" >> $GITHUB_OUTPUT
+          echo "benchmark_runner_image=#{BenchmarkRunnerImage}#" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        # Get the first regional ACR to construct image URIs
+        acr=$(az acr list --resource-group serverless-container-benchmark --query "[0]" -o json)
+        
+        if [ -z "$acr" ] || [ "$acr" == "null" ]; then
+          echo "::warning::No container registries found. Using placeholder values."
+          echo "minimal_api_image=#{MinimalApiImage}#" >> $GITHUB_OUTPUT
+          echo "benchmark_runner_image=#{BenchmarkRunnerImage}#" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        login_server=$(echo "$acr" | jq -r '.loginServer')
+        echo "Found ACR login server: $login_server"
+        
+        minimal_api_image="${login_server}/serverless-benchmark-api:latest"
+        benchmark_runner_image="${login_server}/serverless-benchmark-runner:latest"
+        
+        echo "minimal_api_image=${minimal_api_image}" >> $GITHUB_OUTPUT
+        echo "benchmark_runner_image=${benchmark_runner_image}" >> $GITHUB_OUTPUT
+
     - name: Azure What-If
       id: whatif
       run: |
         cd deploy
+        
+        # Update parameters with resolved image URIs
+        minimal_api_image="${{ steps.build-image-uris.outputs.minimal_api_image }}"
+        benchmark_runner_image="${{ steps.build-image-uris.outputs.benchmark_runner_image }}"
+        
+        sed -i "s|#{MinimalApiImage}#|${minimal_api_image}|g" parameters/prod.bicepparam
+        sed -i "s|#{BenchmarkRunnerImage}#|${benchmark_runner_image}|g" parameters/prod.bicepparam
+        
         echo "## Infrastructure What-If - Production" >> whatif-output.md
+        echo "" >> whatif-output.md
+        echo "**Image URIs:**" >> whatif-output.md
+        echo "- MinimalApi: \`${minimal_api_image}\`" >> whatif-output.md
+        echo "- BenchmarkRunner: \`${benchmark_runner_image}\`" >> whatif-output.md
         echo "" >> whatif-output.md
         echo '```' >> whatif-output.md
         az deployment group what-if \
