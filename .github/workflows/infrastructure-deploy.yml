@@ -45,10 +45,16 @@ jobs:
         # Update container image parameters if available
         if [[ -n "${{ vars.MINIMAL_API_IMAGE }}" ]]; then
           sed -i "s|#{MinimalApiImage}#|${{ vars.MINIMAL_API_IMAGE }}|g" parameters/prod.bicepparam
+        else
+          echo "::warning::MINIMAL_API_IMAGE variable not set, using 'latest' tag"
+          sed -i "s|#{MinimalApiImage}#|latest|g" parameters/prod.bicepparam
         fi
         
         if [[ -n "${{ vars.BENCHMARK_RUNNER_IMAGE }}" ]]; then
           sed -i "s|#{BenchmarkRunnerImage}#|${{ vars.BENCHMARK_RUNNER_IMAGE }}|g" parameters/prod.bicepparam
+        else
+          echo "::warning::BENCHMARK_RUNNER_IMAGE variable not set, using 'latest' tag"
+          sed -i "s|#{BenchmarkRunnerImage}#|latest|g" parameters/prod.bicepparam
         fi
         
         # Deploy the infrastructure
