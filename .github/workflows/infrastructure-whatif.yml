@@ -44,7 +44,7 @@ jobs:
         echo "" >> whatif-output.md
         echo '```' >> whatif-output.md
         az deployment group what-if \
-          --name serverless-container-benchmark \
+          --resource-group serverless-container-benchmark \
           --location westeurope \
           --template-file bicep/main.bicep \
           --parameters parameters/prod.bicepparam \

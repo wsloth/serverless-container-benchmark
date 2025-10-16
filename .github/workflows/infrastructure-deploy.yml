@@ -55,7 +55,7 @@ jobs:
         deployment_name="scb-prod-$(date +%Y%m%d-%H%M%S)"
         
         az deployment group create \
-          --name serverless-container-benchmark \
+          --resource-group serverless-container-benchmark \
           --name $deployment_name \
           --location westeurope \
           --template-file bicep/main.bicep \
