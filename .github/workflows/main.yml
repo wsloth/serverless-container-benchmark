@@ -85,7 +85,7 @@ jobs:
           fi
           
           # Get list of ACRs in the resource group
-          acrs=$(az acr list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[].{name:name, loginServer:loginServer}" -o json)
+          acrs=$(az acr list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[].{name:name, loginServer:loginServer}" -o json | jq -c '.')
           
           if [ "$(echo "$acrs" | jq '. | length')" -eq 0 ]; then
             echo "No container registries found in resource group. Skipping container push."
@@ -94,7 +94,7 @@ jobs:
           fi
           
           echo "Found $(echo "$acrs" | jq '. | length') container registries"
-          echo "acrs=$acrs" >> $GITHUB_OUTPUT
+          echo "acrs=$(echo "$acrs" | jq -c '.')" >> $GITHUB_OUTPUT
           echo "skip_push=false" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
