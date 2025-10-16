@@ -1,0 +1,72 @@
+---
+name: Pull Request CI
+
+'on':
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - 'deploy/**'
+      - '.github/workflows/infrastructure-*.yml'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build and Test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: |
+          dotnet test --configuration Release --no-build \
+            --verbosity normal --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger "trx;LogFileName=TestResults.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            TestResults/
+            **/TestResults/
+          retention-days: 7
+
+  validate-dockerfiles:
+    runs-on: ubuntu-latest
+    name: Validate Dockerfiles
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate MinimalApi Dockerfile
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -f src/MinimalApi/Dockerfile --target build .
+
+      - name: Validate BenchmarkRunner Dockerfile
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -f src/BenchmarkRunner/Dockerfile --target build .

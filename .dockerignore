@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+
+# NuGet packages
+packages/
+*.nupkg
+
+# Test results
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# CI/CD
+.github/
+
+# Aspire
+.aspire/
+
+# OS files
+.DS_Store
+Thumbs.db
