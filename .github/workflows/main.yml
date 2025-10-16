@@ -12,13 +12,8 @@ name: Main Branch CI/CD
 
 env:
   DOTNET_VERSION: '9.0.x'
-  # Set this to your Azure Container Registry name
-  # (e.g., 'myregistry.azurecr.io')
-  REGISTRY_NAME: ''
-  # Set this to your Azure resource group containing the ACR
-  AZURE_RESOURCE_GROUP: ''
-  # Set this to your Azure subscription ID
-  AZURE_SUBSCRIPTION_ID: ''
+  # Resource group name is consistent with infrastructure deployment
+  AZURE_RESOURCE_GROUP: 'serverless-container-benchmark'
 
 jobs:
   build-and-test:
@@ -61,7 +56,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Push Docker Images
     needs: build-and-test
-    if: env.REGISTRY_NAME != ''
 
     # Grant GITHUB_TOKEN the permissions required to authenticate
     # with Azure via federated identity
@@ -78,64 +72,79 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get Container Registries from Resource Group
+        id: get-acrs
+        run: |
+          # Check if resource group exists
+          if ! az group exists --name ${{ env.AZURE_RESOURCE_GROUP }}; then
+            echo "Resource group ${{ env.AZURE_RESOURCE_GROUP }} does not exist. Skipping container push."
+            echo "skip_push=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get list of ACRs in the resource group
+          acrs=$(az acr list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[].{name:name, loginServer:loginServer}" -o json)
+          
+          if [ "$(echo "$acrs" | jq '. | length')" -eq 0 ]; then
+            echo "No container registries found in resource group. Skipping container push."
+            echo "skip_push=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "Found $(echo "$acrs" | jq '. | length') container registries"
+          echo "acrs=$acrs" >> $GITHUB_OUTPUT
+          echo "skip_push=false" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
+        if: steps.get-acrs.outputs.skip_push != 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Azure Container Registry
+      - name: Build and push to all regional ACRs
+        if: steps.get-acrs.outputs.skip_push != 'true'
         run: |
-          az acr login --name $(echo ${{ env.REGISTRY_NAME }} | cut -d'.' -f1)
+          acrs='${{ steps.get-acrs.outputs.acrs }}'
+          
+          for row in $(echo "$acrs" | jq -r '.[] | @base64'); do
+            _jq() {
+              echo "${row}" | base64 --decode | jq -r "${1}"
+            }
+            
+            acr_name=$(_jq '.name')
+            acr_login_server=$(_jq '.loginServer')
+            
+            echo "Logging in to $acr_name"
+            az acr login --name "$acr_name"
+            
+            echo "Building and pushing MinimalApi to $acr_login_server"
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag "${acr_login_server}/serverless-benchmark-api:latest" \
+              --tag "${acr_login_server}/serverless-benchmark-api:${GITHUB_SHA::7}" \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              --file src/MinimalApi/Dockerfile \
+              .
+            
+            echo "Building and pushing BenchmarkRunner to $acr_login_server"
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag "${acr_login_server}/serverless-benchmark-runner:latest" \
+              --tag "${acr_login_server}/serverless-benchmark-runner:${GITHUB_SHA::7}" \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              --file src/BenchmarkRunner/Dockerfile \
+              .
+          done
 
-      - name: Extract metadata for MinimalApi
-        id: meta-api
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY_NAME }}/serverless-benchmark-api
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Extract metadata for BenchmarkRunner
-        id: meta-runner
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY_NAME }}/serverless-benchmark-runner
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push MinimalApi Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: src/MinimalApi/Dockerfile
-          push: true
-          tags: ${{ steps.meta-api.outputs.tags }}
-          labels: ${{ steps.meta-api.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push BenchmarkRunner Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: src/BenchmarkRunner/Dockerfile
-          push: true
-          tags: ${{ steps.meta-runner.outputs.tags }}
-          labels: ${{ steps.meta-runner.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-containers-dry-run:
+  validate-docker-builds:
     runs-on: ubuntu-latest
-    name: Build Docker Images (Dry Run)
-    needs: build-and-test
-    if: env.REGISTRY_NAME == ''
+    name: Validate Docker Builds
+    needs: [build-and-test, build-and-push-containers]
+    if: always() && needs.build-and-test.result == 'success' && needs.build-and-push-containers.result == 'skipped'
 
     steps:
       - name: Checkout code
@@ -144,7 +153,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build MinimalApi Docker image (no push)
+      - name: Build MinimalApi Docker image (validation only)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -155,7 +164,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build BenchmarkRunner Docker image (no push)
+      - name: Build BenchmarkRunner Docker image (validation only)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -166,11 +175,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Registry Configuration Notice
+      - name: Setup Instructions
         run: |
-          echo "::notice title=Registry Configuration::To enable container \
-          registry push, configure the following: 1) Set REGISTRY_NAME, \
-          AZURE_RESOURCE_GROUP, and AZURE_SUBSCRIPTION_ID environment \
-          variables, 2) Set up Azure federated identity with AZURE_CLIENT_ID \
-          and AZURE_TENANT_ID secrets, 3) Grant the service principal \
-          AcrPush role on your container registry"
+          echo "::notice title=Azure Infrastructure Not Found::No container registries found. To enable container image deployment, run the infrastructure deployment workflow first to create the required Azure resources in the '${{ env.AZURE_RESOURCE_GROUP }}' resource group."

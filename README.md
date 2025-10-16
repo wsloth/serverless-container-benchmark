@@ -125,29 +125,30 @@ Two Docker images are built:
 
 The pipeline uses OpenID Connect (OIDC) federated identity for secure, credential-less authentication with Azure.
 
-**Prerequisites:**
-1. Azure subscription with appropriate permissions
-2. Azure Container Registry (if you want to push container images)
+**How It Works:**
 
-**Configuration:**
+The application CI/CD workflow automatically discovers and deploys to all Azure Container Registries in the `serverless-container-benchmark` resource group. This design ensures:
+- No hardcoded registry names - the workflow queries Azure dynamically
+- Automatic deployment to all regional ACRs created by infrastructure deployment
+- Seamless integration between infrastructure and application workflows
 
-For container image builds (optional):
-1. Set environment variables in `.github/workflows/main.yml`:
-   - `REGISTRY_NAME`: Your ACR URL (e.g., `myregistry.azurecr.io`)
-   - `AZURE_RESOURCE_GROUP`: Resource group containing the ACR
-   - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
+**Workflow Integration:**
 
-For infrastructure deployment:
-1. The infrastructure workflows automatically create regional ACRs as part of the Bicep deployment
+1. **Infrastructure First**: Run the infrastructure deployment workflow to create the Azure resources (resource group, regional ACRs, Container Apps, etc.)
+2. **Automatic Discovery**: The application workflow automatically finds all ACRs in the resource group
+3. **Multi-Region Push**: Container images are built once and pushed to all regional registries
 
 **Required Secrets:**
 - `AZURE_CLIENT_ID`: Azure AD application client ID
 - `AZURE_TENANT_ID`: Azure AD tenant ID
+- `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
 
 **Setup Steps:**
 1. Create an Azure AD application and service principal
 2. Configure federated identity credentials for your GitHub repository
-3. Grant appropriate RBAC roles (AcrPush for container registry, Contributor for infrastructure deployment)
+3. Grant appropriate RBAC roles:
+   - `Contributor` role on the subscription (for infrastructure deployment)
+   - `AcrPush` role on container registries (for pushing images)
 
 For detailed setup instructions, see `docs/azure-oidc-setup.md`.
 
