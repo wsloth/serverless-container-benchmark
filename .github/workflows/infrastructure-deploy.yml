@@ -63,7 +63,6 @@ jobs:
         az deployment group create \
           --resource-group serverless-container-benchmark \
           --name $deployment_name \
-          --location westeurope \
           --template-file bicep/main.bicep \
           --parameters parameters/prod.bicepparam \
           --verbose
